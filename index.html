@@ -1,0 +1,2345 @@
+<!doctype html>
+<html lang="en" data-theme="day" data-reduce-motion="false">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Emotional OS — AnxietyOS</title>
+  <meta name="description" content="AnxietyOS: a calming desktop-style experience with breathing, grounding, journaling, reframes, and mood tracking. Local-only." />
+
+  <style>
+    :root{
+      --radius: 18px;
+      --radius2: 26px;
+      --shadow: 0 22px 60px rgba(12,16,28,.14);
+      --shadow2: 0 10px 24px rgba(12,16,28,.10);
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica, Arial;
+      --focus: 0 0 0 3px rgba(45,212,191,.35);
+      --glass-border: rgba(255,255,255,.18);
+      --glass: rgba(255,255,255,.62);
+      --glass2: rgba(255,255,255,.78);
+
+      /* day default */
+      --bgA:#F6FAFF;
+      --bgB:#FFF7FB;
+      --bgC:#F7FFF9;
+      --text: rgba(16,22,36,.92);
+      --muted: rgba(16,22,36,.62);
+      --muted2: rgba(16,22,36,.42);
+      --line: rgba(18,25,40,.12);
+      --accent:#2DD4BF;   /* teal */
+      --accent2:#8B5CF6;  /* violet */
+      --danger:#EF4444;
+      --ok:#22C55E;
+      --warn:#F59E0B;
+      --toast-bg: rgba(255,255,255,.78);
+    }
+
+    html[data-theme="night"]{
+      --bgA:#060913;
+      --bgB:#0B1021;
+      --bgC:#07141D;
+      --text: rgba(255,255,255,.92);
+      --muted: rgba(255,255,255,.68);
+      --muted2: rgba(255,255,255,.45);
+      --line: rgba(255,255,255,.14);
+      --glass: rgba(255,255,255,.07);
+      --glass2: rgba(255,255,255,.10);
+      --glass-border: rgba(255,255,255,.16);
+      --shadow: 0 30px 80px rgba(0,0,0,.55);
+      --shadow2: 0 10px 24px rgba(0,0,0,.35);
+      --toast-bg: rgba(0,0,0,.55);
+    }
+
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family:var(--sans);
+      color:var(--text);
+      overflow:hidden;
+      background:
+        radial-gradient(1200px 700px at 18% 10%, color-mix(in srgb, var(--accent) 18%, transparent), transparent 60%),
+        radial-gradient(900px 650px at 88% 20%, color-mix(in srgb, var(--accent2) 16%, transparent), transparent 60%),
+        radial-gradient(900px 550px at 40% 100%, color-mix(in srgb, var(--ok) 12%, transparent), transparent 60%),
+        linear-gradient(135deg, var(--bgA), var(--bgB) 40%, var(--bgC));
+    }
+
+    a{color:inherit}
+    button, input, textarea, select{font:inherit}
+    button{border:0;background:none}
+    .sr-only{
+      position:absolute; width:1px;height:1px; padding:0;margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0;
+    }
+    :focus-visible{ outline:none; box-shadow: var(--focus); border-radius: 12px; }
+
+    /* gentle grain */
+    .grain{
+      pointer-events:none;
+      position:fixed; inset:0;
+      opacity: .05;
+      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)' opacity='.35'/%3E%3C/svg%3E");
+      mix-blend-mode:multiply;
+    }
+
+    canvas#fx{
+      position:fixed; inset:0;
+      width:100%; height:100%;
+      z-index:-1;
+    }
+
+    /* BOOT */
+    .boot{
+      position:fixed; inset:0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:22px;
+      z-index:1000;
+      background:
+        radial-gradient(900px 600px at 20% 15%, color-mix(in srgb, var(--accent) 18%, transparent), transparent 60%),
+        radial-gradient(800px 550px at 90% 20%, color-mix(in srgb, var(--accent2) 16%, transparent), transparent 60%),
+        linear-gradient(135deg, var(--bgA), var(--bgB) 40%, var(--bgC));
+      transition: opacity .28s ease, transform .28s ease;
+    }
+    .boot.hidden{
+      opacity:0;
+      pointer-events:none;
+      transform: translateY(-6px);
+    }
+    .bootCard{
+      width:min(880px, 100%);
+      border:1px solid var(--line);
+      border-radius: var(--radius2);
+      background: linear-gradient(180deg, var(--glass2), var(--glass));
+      backdrop-filter: blur(14px);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+    }
+    .bootTop{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding:16px 18px;
+      border-bottom:1px solid color-mix(in srgb, var(--line) 75%, transparent);
+    }
+    .bootBrand{
+      display:flex; align-items:center; gap:12px; min-width:0;
+    }
+    .bootLogo{
+      width:44px; height:44px; border-radius:14px;
+      border:1px solid var(--line);
+      background:
+        radial-gradient(circle at 30% 30%, color-mix(in srgb, var(--accent) 75%, white 10%), transparent 60%),
+        radial-gradient(circle at 70% 70%, color-mix(in srgb, var(--accent2) 70%, white 10%), transparent 60%),
+        color-mix(in srgb, var(--glass2) 75%, transparent);
+      position:relative; overflow:hidden;
+      box-shadow: var(--shadow2);
+      flex:0 0 auto;
+    }
+    .bootLogo:after{
+      content:"";
+      position:absolute; inset:-40%;
+      background: conic-gradient(from 180deg, transparent, rgba(255,255,255,.45), transparent);
+      animation: spin 10s linear infinite;
+    }
+    @keyframes spin{to{transform:rotate(360deg)}}
+    .bootTitle{
+      display:flex; flex-direction:column; min-width:0;
+    }
+    .bootTitle h1{
+      margin:0;
+      font-size:13px;
+      letter-spacing:.14em;
+      text-transform:uppercase;
+      font-family: var(--mono);
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .bootTitle p{
+      margin:4px 0 0;
+      color: var(--muted);
+      font-size:13px;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .bootBody{
+      padding:18px;
+      display:grid;
+      grid-template-columns: 1.15fr .85fr;
+      gap:14px;
+    }
+    @media (max-width: 860px){
+      .bootBody{grid-template-columns:1fr}
+    }
+    .bootPane{
+      border:1px solid color-mix(in srgb, var(--line) 70%, transparent);
+      border-radius: 18px;
+      background: color-mix(in srgb, var(--glass2) 70%, transparent);
+      padding:14px 14px;
+    }
+    .bootPane h2{
+      margin:0;
+      font-family: var(--mono);
+      font-size:12px;
+      letter-spacing:.14em;
+      text-transform:uppercase;
+    }
+    .bootPane p{
+      margin:8px 0 0;
+      color: var(--muted);
+      font-size:13px;
+      line-height:1.4;
+    }
+    .bootProgress{
+      margin-top:14px;
+      height:12px;
+      border-radius:999px;
+      background: color-mix(in srgb, var(--line) 35%, transparent);
+      overflow:hidden;
+      border:1px solid color-mix(in srgb, var(--line) 55%, transparent);
+    }
+    .bootProgress i{
+      display:block;
+      height:100%;
+      width:0%;
+      background: linear-gradient(90deg, color-mix(in srgb, var(--accent) 80%, transparent), color-mix(in srgb, var(--accent2) 70%, transparent));
+      border-radius:999px;
+      transition: width .22s ease;
+    }
+    .bootStatus{
+      margin-top:10px;
+      font-family: var(--mono);
+      font-size:12px;
+      color: var(--muted);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+    .kbd{
+      font-family:var(--mono);
+      font-size:12px;
+      padding:2px 8px;
+      border-radius:10px;
+      border:1px solid color-mix(in srgb, var(--line) 80%, transparent);
+      background: color-mix(in srgb, var(--glass2) 70%, transparent);
+      color: var(--muted);
+    }
+    .bootActions{
+      margin-top:12px;
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+
+    /* DESKTOP */
+    .app{
+      position:fixed; inset:0;
+      display:flex;
+      flex-direction:column;
+    }
+    .topbar{
+      height:54px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding:10px 14px;
+      gap:10px;
+      border-bottom: 1px solid color-mix(in srgb, var(--line) 75%, transparent);
+      background: linear-gradient(180deg, color-mix(in srgb, var(--glass2) 70%, transparent), color-mix(in srgb, var(--glass) 65%, transparent));
+      backdrop-filter: blur(12px);
+    }
+    .topLeft, .topRight{display:flex; align-items:center; gap:10px; flex-wrap:wrap;}
+    .pill{
+      display:flex; align-items:center; gap:8px;
+      padding:8px 10px;
+      border-radius:999px;
+      border:1px solid color-mix(in srgb, var(--line) 85%, transparent);
+      background: color-mix(in srgb, var(--glass2) 70%, transparent);
+      box-shadow: var(--shadow2);
+      font-family: var(--mono);
+      font-size:12px;
+      color: var(--muted);
+    }
+    .dot{
+      width:8px; height:8px; border-radius:99px;
+      background: var(--ok);
+      box-shadow: 0 0 16px color-mix(in srgb, var(--ok) 30%, transparent);
+    }
+    .brandMini{
+      display:flex; align-items:center; gap:10px;
+      padding:8px 10px;
+      border-radius:999px;
+      border:1px solid color-mix(in srgb, var(--line) 85%, transparent);
+      background: color-mix(in srgb, var(--glass2) 70%, transparent);
+      box-shadow: var(--shadow2);
+    }
+    .brandMini b{
+      font-family: var(--mono);
+      letter-spacing:.14em;
+      font-size:12px;
+      text-transform:uppercase;
+    }
+    .brandMini span{color:var(--muted); font-size:12px}
+
+    .btn{
+      cursor:pointer;
+      border:1px solid color-mix(in srgb, var(--line) 85%, transparent);
+      background: linear-gradient(180deg, color-mix(in srgb, var(--glass2) 75%, transparent), color-mix(in srgb, var(--glass) 70%, transparent));
+      color: var(--text);
+      padding:10px 12px;
+      border-radius:14px;
+      font-weight:700;
+      font-size:13px;
+      box-shadow: var(--shadow2);
+      transition: transform .08s ease, border-color .2s ease, filter .2s ease;
+    }
+    .btn:hover{ border-color: color-mix(in srgb, var(--accent) 35%, var(--line)); filter: brightness(1.01); }
+    .btn:active{ transform: translateY(1px); }
+    .btn.primary{
+      border-color: color-mix(in srgb, var(--accent) 35%, var(--line));
+      background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 18%, white 55%), color-mix(in srgb, var(--glass) 80%, transparent));
+    }
+    html[data-theme="night"] .btn.primary{
+      background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 20%, transparent), color-mix(in srgb, var(--glass) 80%, transparent));
+    }
+    .btn.danger{
+      border-color: color-mix(in srgb, var(--danger) 32%, var(--line));
+      background: linear-gradient(180deg, color-mix(in srgb, var(--danger) 14%, white 70%), color-mix(in srgb, var(--glass) 80%, transparent));
+    }
+    html[data-theme="night"] .btn.danger{
+      background: linear-gradient(180deg, color-mix(in srgb, var(--danger) 20%, transparent), color-mix(in srgb, var(--glass) 80%, transparent));
+    }
+
+    .desktopArea{
+      position:relative;
+      flex:1;
+      overflow:hidden;
+    }
+
+    /* dock */
+    .dock{
+      position:absolute;
+      left:50%;
+      bottom:14px;
+      transform:translateX(-50%);
+      display:flex;
+      gap:10px;
+      padding:10px 12px;
+      border-radius:999px;
+      border:1px solid color-mix(in srgb, var(--line) 85%, transparent);
+      background: linear-gradient(180deg, color-mix(in srgb, var(--glass2) 75%, transparent), color-mix(in srgb, var(--glass) 70%, transparent));
+      backdrop-filter: blur(12px);
+      box-shadow: var(--shadow);
+      z-index:50;
+      max-width: calc(100% - 22px);
+      overflow:auto hidden;
+    }
+    .dockBtn{
+      width:44px; height:44px;
+      border-radius:16px;
+      border:1px solid color-mix(in srgb, var(--line) 85%, transparent);
+      background: color-mix(in srgb, var(--glass2) 68%, transparent);
+      box-shadow: var(--shadow2);
+      cursor:pointer;
+      position:relative;
+      display:grid;
+      place-items:center;
+      transition: transform .08s ease, border-color .2s ease, filter .2s ease;
+      flex:0 0 auto;
+    }
+    .dockBtn:hover{ transform: translateY(-1px); border-color: color-mix(in srgb, var(--accent) 35%, var(--line)); }
+    .dockBtn:active{ transform: translateY(0px); }
+    .dockBtn .ico{
+      width:26px; height:26px;
+      display:grid; place-items:center;
+      font-family:var(--mono);
+      font-weight:900;
+      letter-spacing:.02em;
+      color: var(--text);
+      opacity:.92;
+      user-select:none;
+    }
+    .tip{
+      position:absolute;
+      bottom:54px;
+      left:50%;
+      transform:translateX(-50%);
+      background: var(--toast-bg);
+      border:1px solid color-mix(in srgb, var(--line) 80%, transparent);
+      color: var(--text);
+      padding:7px 10px;
+      border-radius: 12px;
+      font-size:12px;
+      font-family: var(--mono);
+      box-shadow: var(--shadow2);
+      white-space:nowrap;
+      opacity:0;
+      pointer-events:none;
+      transition: opacity .12s ease, transform .12s ease;
+    }
+    .dockBtn:hover .tip{opacity:1; transform:translateX(-50%) translateY(-2px);}
+
+    /* windows */
+    .window{
+      position:absolute;
+      width:min(520px, calc(100% - 26px));
+      min-width: 300px;
+      height:auto;
+      border-radius: var(--radius2);
+      border:1px solid var(--glass-border);
+      background: linear-gradient(180deg, color-mix(in srgb, var(--glass2) 85%, transparent), color-mix(in srgb, var(--glass) 75%, transparent));
+      backdrop-filter: blur(16px);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+      user-select:none;
+    }
+    .window.minimized{
+      display:none;
+    }
+    .winHead{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding:10px 12px;
+      border-bottom: 1px solid color-mix(in srgb, var(--line) 75%, transparent);
+      background: color-mix(in srgb, var(--glass2) 65%, transparent);
+      cursor: grab;
+    }
+    .winTitle{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      min-width:0;
+    }
+    .winTitle b{
+      font-family: var(--mono);
+      font-size:12px;
+      letter-spacing:.14em;
+      text-transform:uppercase;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .winTitle span{
+      font-family: var(--mono);
+      font-size:12px;
+      color: var(--muted);
+      white-space:nowrap;
+    }
+    .winBtns{
+      display:flex;
+      gap:8px;
+      align-items:center;
+    }
+    .winBtn{
+      width:34px; height:28px;
+      border-radius:12px;
+      border:1px solid color-mix(in srgb, var(--line) 80%, transparent);
+      background: color-mix(in srgb, var(--glass2) 65%, transparent);
+      box-shadow: var(--shadow2);
+      cursor:pointer;
+      display:grid;
+      place-items:center;
+      font-family: var(--mono);
+      color: var(--muted);
+      font-size:12px;
+      transition: transform .08s ease, border-color .2s ease;
+    }
+    .winBtn:hover{ border-color: color-mix(in srgb, var(--accent) 35%, var(--line)); }
+    .winBtn:active{ transform: translateY(1px); }
+    .winBody{
+      padding:12px 12px 14px;
+      user-select:text;
+    }
+
+    /* form controls */
+    .label{
+      font-family: var(--mono);
+      font-size:12px;
+      color: var(--muted);
+      letter-spacing:.06em;
+      text-transform:uppercase;
+    }
+    input[type="text"], textarea, select{
+      width:100%;
+      border-radius: 14px;
+      border:1px solid color-mix(in srgb, var(--line) 85%, transparent);
+      background: color-mix(in srgb, var(--glass2) 80%, transparent);
+      color: var(--text);
+      padding:10px 10px;
+      outline:none;
+      box-shadow: 0 10px 22px rgba(0,0,0,.04);
+    }
+    html[data-theme="night"] input[type="text"], 
+    html[data-theme="night"] textarea,
+    html[data-theme="night"] select{
+      box-shadow: 0 10px 22px rgba(0,0,0,.20);
+    }
+    textarea{min-height: 90px; resize: vertical;}
+    ::placeholder{color: color-mix(in srgb, var(--muted) 55%, transparent)}
+    .row{display:flex; gap:10px; align-items:center; flex-wrap:wrap;}
+    .grid2{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+    @media (max-width: 720px){ .grid2{grid-template-columns:1fr} }
+    .sep{height:10px}
+    .hint{font-size:12px; color: var(--muted); line-height:1.35}
+
+    .meter{
+      padding:12px;
+      border-radius: 16px;
+      border:1px solid color-mix(in srgb, var(--line) 80%, transparent);
+      background: color-mix(in srgb, var(--glass2) 75%, transparent);
+    }
+    .meterTop{
+      display:flex; justify-content:space-between; align-items:center; gap:10px;
+      font-family: var(--mono);
+      font-size:12px;
+      color: var(--muted);
+    }
+    .bar{
+      height:10px;
+      border-radius: 999px;
+      background: color-mix(in srgb, var(--line) 28%, transparent);
+      overflow:hidden;
+      border:1px solid color-mix(in srgb, var(--line) 55%, transparent);
+      margin-top:10px;
+    }
+    .bar i{
+      display:block; height:100%; width:40%;
+      background: linear-gradient(90deg, color-mix(in srgb, var(--accent) 80%, transparent), color-mix(in srgb, var(--accent2) 70%, transparent));
+      border-radius:999px;
+      transition: width .18s ease;
+    }
+
+    /* toasts */
+    .toast{
+      position:fixed;
+      right:14px;
+      bottom:86px;
+      width:min(360px, calc(100% - 24px));
+      display:grid;
+      gap:10px;
+      z-index:200;
+      pointer-events:none;
+    }
+    .toastItem{
+      pointer-events:none;
+      border:1px solid color-mix(in srgb, var(--line) 85%, transparent);
+      background: var(--toast-bg);
+      backdrop-filter: blur(12px);
+      border-radius: 16px;
+      padding:10px 12px;
+      box-shadow: var(--shadow2);
+      animation: toastIn .18s ease forwards;
+    }
+    @keyframes toastIn{
+      from{opacity:0; transform: translateY(6px)}
+      to{opacity:1; transform: translateY(0)}
+    }
+    .toastItem .tTop{
+      display:flex; justify-content:space-between; gap:10px;
+      font-family: var(--mono);
+      font-size:12px;
+      color: var(--muted);
+    }
+    .toastItem .tMsg{
+      margin-top:6px;
+      font-size:13px;
+      color: var(--text);
+      line-height:1.35;
+      white-space:pre-wrap;
+    }
+
+    /* Panic overlay */
+    .overlay{
+      position:fixed; inset:0;
+      background: rgba(0,0,0,.22);
+      backdrop-filter: blur(10px);
+      z-index:900;
+      display:none;
+      align-items:center;
+      justify-content:center;
+      padding:18px;
+    }
+    html[data-theme="night"] .overlay{ background: rgba(0,0,0,.55); }
+    .overlay.show{ display:flex; }
+    .overlayCard{
+      width:min(860px, 100%);
+      border:1px solid color-mix(in srgb, var(--line) 80%, transparent);
+      border-radius: var(--radius2);
+      background: linear-gradient(180deg, color-mix(in srgb, var(--glass2) 85%, transparent), color-mix(in srgb, var(--glass) 75%, transparent));
+      box-shadow: var(--shadow);
+      overflow:hidden;
+    }
+    .overlayHead{
+      padding:12px 14px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      border-bottom:1px solid color-mix(in srgb, var(--line) 75%, transparent);
+      background: color-mix(in srgb, var(--glass2) 65%, transparent);
+    }
+    .overlayHead b{
+      font-family: var(--mono);
+      letter-spacing:.14em;
+      font-size:12px;
+      text-transform:uppercase;
+    }
+    .overlayBody{
+      padding:14px;
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:12px;
+    }
+    @media (max-width: 860px){
+      .overlayBody{grid-template-columns:1fr}
+    }
+
+    .orb{
+      width:120px; height:120px;
+      border-radius:999px;
+      border:1px solid color-mix(in srgb, var(--line) 80%, transparent);
+      background:
+        radial-gradient(circle at 30% 25%, color-mix(in srgb, var(--accent) 30%, transparent), transparent 60%),
+        radial-gradient(circle at 70% 70%, color-mix(in srgb, var(--accent2) 22%, transparent), transparent 60%),
+        color-mix(in srgb, var(--glass2) 75%, transparent);
+      box-shadow: var(--shadow2);
+      position:relative;
+      transform: scale(1);
+      transition: transform .5s ease;
+    }
+    .orb.bigPulse{ transform: scale(1.06); }
+
+    /* app cards lists */
+    .list{
+      display:grid;
+      gap:10px;
+      margin-top:10px;
+    }
+    .item{
+      border:1px solid color-mix(in srgb, var(--line) 80%, transparent);
+      background: color-mix(in srgb, var(--glass2) 72%, transparent);
+      border-radius: 16px;
+      padding:10px 10px;
+    }
+    .item .meta{
+      display:flex; justify-content:space-between; gap:10px;
+      font-family: var(--mono);
+      font-size:12px;
+      color: var(--muted);
+      flex-wrap:wrap;
+    }
+    .item .txt{
+      margin-top:6px;
+      font-size:13px;
+      color: var(--text);
+      line-height:1.35;
+      white-space:pre-wrap;
+      word-break:break-word;
+    }
+
+    /* mobile app launcher */
+    .launcher{
+      position:absolute;
+      inset:0;
+      padding:14px;
+      overflow:auto;
+      display:none;
+    }
+    .launcher h2{
+      margin:0;
+      font-family: var(--mono);
+      letter-spacing:.14em;
+      font-size:12px;
+      text-transform:uppercase;
+      color: var(--muted);
+    }
+    .launcherGrid{
+      display:grid;
+      grid-template-columns: 1fr;
+      gap:10px;
+      margin-top:12px;
+    }
+    .launchCard{
+      border:1px solid color-mix(in srgb, var(--line) 85%, transparent);
+      background: linear-gradient(180deg, color-mix(in srgb, var(--glass2) 78%, transparent), color-mix(in srgb, var(--glass) 70%, transparent));
+      border-radius: 18px;
+      padding:12px;
+      box-shadow: var(--shadow2);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+    }
+    .launchCard b{
+      font-family: var(--mono);
+      letter-spacing:.12em;
+      font-size:12px;
+      text-transform:uppercase;
+    }
+    .launchCard p{
+      margin:6px 0 0;
+      font-size:13px;
+      color: var(--muted);
+      line-height:1.35;
+    }
+
+    /* Panic floating button */
+    .panicFloat{
+      position:fixed;
+      left:14px;
+      bottom:86px;
+      z-index:220;
+    }
+
+    /* footer disclaimer */
+    .footerNote{
+      position:fixed;
+      left:50%;
+      bottom:12px;
+      transform: translateX(-50%);
+      font-size:12px;
+      color: var(--muted2);
+      font-family: var(--mono);
+      padding:6px 10px;
+      border-radius:999px;
+      border:1px solid color-mix(in srgb, var(--line) 75%, transparent);
+      background: color-mix(in srgb, var(--glass2) 65%, transparent);
+      backdrop-filter: blur(10px);
+      box-shadow: var(--shadow2);
+      max-width: calc(100% - 22px);
+      text-align:center;
+    }
+
+    /* reduce motion */
+    html[data-reduce-motion="true"] *{
+      animation-duration: 0.001ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.001ms !important;
+      scroll-behavior: auto !important;
+    }
+
+    /* responsive: show launcher on small */
+    @media (max-width: 860px){
+      .dock{ display:none; }
+      .launcher{ display:block; }
+    }
+  </style>
+</head>
+
+<body>
+  <canvas id="fx"></canvas>
+  <div class="grain"></div>
+
+  <!-- BOOT SCREEN -->
+  <section class="boot" id="boot" aria-label="Boot screen">
+    <div class="bootCard" role="dialog" aria-modal="true">
+      <div class="bootTop">
+        <div class="bootBrand">
+          <div class="bootLogo" aria-hidden="true"></div>
+          <div class="bootTitle">
+            <h1>ANXIETYOS</h1>
+            <p>Starting Emotional OS… gentle boot sequence</p>
+          </div>
+        </div>
+        <div class="pill" style="box-shadow:none">
+          <span class="kbd">Enter</span> to continue
+        </div>
+      </div>
+
+      <div class="bootBody">
+        <div class="bootPane">
+          <h2>Boot Log</h2>
+          <p id="bootLog">Initializing calm drivers…</p>
+          <div class="bootProgress" aria-label="Boot progress">
+            <i id="bootBar"></i>
+          </div>
+          <div class="bootStatus">
+            <span id="bootStatusLeft">Starting AnxietyOS…</span>
+            <span id="bootStatusRight">0%</span>
+          </div>
+          <div class="bootActions">
+            <button class="btn primary" id="enterBtn" disabled>Enter Desktop</button>
+            <button class="btn" id="bootSettingsBtn" title="Quick settings">Settings</button>
+          </div>
+        </div>
+
+        <div class="bootPane">
+          <h2>Quick Notes</h2>
+          <p>
+            AnxietyOS stores your entries <b>only in your browser</b> (localStorage). No accounts, no tracking.
+          </p>
+          <div class="sep"></div>
+          <p class="hint">
+            Tips: Press <span class="kbd">G</span> to start breathing, <span class="kbd">P</span> for panic overlay,
+            <span class="kbd">J</span> for Journal, <span class="kbd">S</span> for Settings.
+          </p>
+          <div class="sep"></div>
+          <p class="hint">
+            Footer disclaimer: educational support, not medical advice. If you’re in crisis, contact local emergency services.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- DESKTOP -->
+  <div class="app" id="app" aria-label="Desktop" style="visibility:hidden">
+    <div class="topbar" role="banner">
+      <div class="topLeft">
+        <div class="brandMini">
+          <b>ANXIETYOS</b><span id="routeText">desktop</span>
+        </div>
+        <div class="pill" title="Calm level (derived from usage + mood logs)">
+          <span class="dot" id="calmDot"></span>
+          calm <span id="calmText">okay</span> · <span id="calmLevel">62</span>%
+        </div>
+      </div>
+
+      <div class="topRight">
+        <div class="pill" title="Local time">
+          <span id="timeText">--:--</span>
+        </div>
+        <button class="btn" id="settingsBtn" aria-label="Open settings">Settings</button>
+      </div>
+    </div>
+
+    <div class="desktopArea" id="desktopArea">
+      <!-- mobile launcher -->
+      <section class="launcher" aria-label="App launcher">
+        <h2>App Launcher</h2>
+        <div class="launcherGrid">
+          <div class="launchCard">
+            <div>
+              <b>Breath.exe</b>
+              <p>Box breathing 4–4–4–4 with timer + animation.</p>
+            </div>
+            <button class="btn primary" data-open="breath">Open</button>
+          </div>
+          <div class="launchCard">
+            <div>
+              <b>Grounding</b>
+              <p>5-4-3-2-1 checklist. Save as coping cards.</p>
+            </div>
+            <button class="btn primary" data-open="grounding">Open</button>
+          </div>
+          <div class="launchCard">
+            <div>
+              <b>Journal.txt</b>
+              <p>Write entries + mood tags. View recent history.</p>
+            </div>
+            <button class="btn primary" data-open="journal">Open</button>
+          </div>
+          <div class="launchCard">
+            <div>
+              <b>Thought Firewall</b>
+              <p>Thought → evidence → balanced thought. Save reframes.</p>
+            </div>
+            <button class="btn primary" data-open="firewall">Open</button>
+          </div>
+          <div class="launchCard">
+            <div>
+              <b>Mood Monitor</b>
+              <p>0–10 slider + quick chart of last 7 logs.</p>
+            </div>
+            <button class="btn primary" data-open="mood">Open</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Dock -->
+      <nav class="dock" aria-label="Dock">
+        <button class="dockBtn" data-open="breath" aria-label="Open Breath.exe">
+          <span class="ico">🫁</span><span class="tip">Breath.exe</span>
+        </button>
+        <button class="dockBtn" data-open="grounding" aria-label="Open Grounding">
+          <span class="ico">🧭</span><span class="tip">Grounding 5-4-3-2-1</span>
+        </button>
+        <button class="dockBtn" data-open="journal" aria-label="Open Journal.txt">
+          <span class="ico">📓</span><span class="tip">Journal.txt</span>
+        </button>
+        <button class="dockBtn" data-open="firewall" aria-label="Open Thought Firewall">
+          <span class="ico">🧱</span><span class="tip">Thought Firewall</span>
+        </button>
+        <button class="dockBtn" data-open="mood" aria-label="Open Mood Monitor">
+          <span class="ico">📈</span><span class="tip">Mood Monitor</span>
+        </button>
+      </nav>
+    </div>
+  </div>
+
+  <!-- Panic floating button -->
+  <div class="panicFloat">
+    <button class="btn danger" id="panicBtn" title="Emergency overlay (P)">Panic</button>
+  </div>
+
+  <!-- Toasts -->
+  <div class="toast" id="toast" aria-live="polite" aria-atomic="true"></div>
+
+  <!-- Footer disclaimer -->
+  <div class="footerNote">
+    This tool is for educational support, not a medical device. If you’re in crisis, contact local emergency services.
+  </div>
+
+  <!-- Panic Overlay -->
+  <div class="overlay" id="panicOverlay" role="dialog" aria-modal="true" aria-label="Emergency overlay">
+    <div class="overlayCard">
+      <div class="overlayHead">
+        <b>EMERGENCY MODE</b>
+        <div class="row">
+          <button class="btn" id="soundBtn">Ambient: Off</button>
+          <button class="btn" id="closeOverlayBtn" aria-label="Close overlay">Close</button>
+        </div>
+      </div>
+      <div class="overlayBody">
+        <div class="meter">
+          <div class="meterTop">
+            <span>30s breathing reset</span>
+            <span><b id="panicTimer">30</b>s</span>
+          </div>
+          <div class="sep"></div>
+          <div class="row" style="align-items:center">
+            <div class="orb" id="panicOrb" aria-hidden="true"></div>
+            <div>
+              <div class="label">Phase</div>
+              <div style="font-family:var(--mono); font-size:22px; margin-top:6px" id="panicPhase">Inhale</div>
+              <div class="hint" style="margin-top:8px">Inhale 4 • hold 2 • exhale 6 (soft loop)</div>
+              <div class="sep"></div>
+              <div class="row">
+                <button class="btn primary" id="panicStartBtn">Start</button>
+                <button class="btn" id="panicResetBtn">Reset</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="meter">
+          <div class="meterTop">
+            <span>Quick grounding</span>
+            <span class="label">now</span>
+          </div>
+          <div class="sep"></div>
+          <div class="hint">
+            Say it (out loud if possible):
+            <ul style="margin:10px 0 0; padding-left:18px; line-height:1.5">
+              <li><b>5</b> things I can see</li>
+              <li><b>4</b> things I can feel</li>
+              <li><b>3</b> things I can hear</li>
+              <li><b>2</b> things I can smell</li>
+              <li><b>1</b> thing I can taste</li>
+            </ul>
+          </div>
+          <div class="sep"></div>
+          <div class="hint">
+            If you’re in immediate danger or might harm yourself: contact local emergency services or a trusted person right now.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+/* =========================
+   AnxietyOS — Single File
+   - Boot screen
+   - Desktop + Dock
+   - Draggable windows + z-index
+   - Apps (localStorage)
+   - Panic overlay + ambient sound
+   - Theme + reduce motion + notifications
+   ========================= */
+
+(() => {
+  // ---------- helpers ----------
+  const $ = (id) => document.getElementById(id);
+  const clamp = (n,min,max) => Math.max(min, Math.min(max, n));
+  const nowTime = () => new Date().toLocaleTimeString([], {hour:"2-digit", minute:"2-digit"});
+  const escapeHtml = (s) => String(s)
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;")
+    .replaceAll("'","&#039;");
+
+  // ---------- storage ----------
+  const LS = {
+    theme: "anxietyos_theme",
+    reduceMotion: "anxietyos_reduce_motion",
+    notifLevel: "anxietyos_notif_level",
+    journal: "anxietyos_journal_v1",
+    copingCards: "anxietyos_coping_cards_v1",
+    reframes: "anxietyos_reframes_v1",
+    moodLogs: "anxietyos_mood_logs_v1",
+    calmSeed: "anxietyos_calm_seed_v1"
+  };
+
+  const loadJSON = (key, fallback) => {
+    try{
+      const raw = localStorage.getItem(key);
+      return raw ? JSON.parse(raw) : fallback;
+    }catch{
+      return fallback;
+    }
+  };
+  const saveJSON = (key, value) => localStorage.setItem(key, JSON.stringify(value));
+
+  // ---------- toasts ----------
+  const toastHost = $("toast");
+  function toast(title, msg){
+    const item = document.createElement("div");
+    item.className = "toastItem";
+    const t = new Date().toLocaleTimeString([], {hour:"2-digit", minute:"2-digit"});
+    item.innerHTML = `
+      <div class="tTop"><span>${escapeHtml(title)}</span><span>${t}</span></div>
+      <div class="tMsg">${escapeHtml(msg)}</div>
+    `;
+    toastHost.prepend(item);
+    setTimeout(() => item.remove(), 3600);
+  }
+
+  // ---------- theme + motion ----------
+  function applySettings(){
+    const theme = localStorage.getItem(LS.theme) || "day";
+    const reduce = localStorage.getItem(LS.reduceMotion) || "false";
+    document.documentElement.dataset.theme = theme;
+    document.documentElement.dataset.reduceMotion = reduce;
+  }
+  applySettings();
+
+  // ---------- ambient background particles ----------
+  const c = $("fx");
+  const ctx = c.getContext("2d");
+  let W,H,dpr;
+  function resize(){
+    dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+    W = c.width = Math.floor(innerWidth * dpr);
+    H = c.height = Math.floor(innerHeight * dpr);
+    c.style.width = innerWidth + "px";
+    c.style.height = innerHeight + "px";
+  }
+  addEventListener("resize", resize);
+  resize();
+
+  const particles = Array.from({length: 60}, () => ({
+    x: Math.random()*W,
+    y: Math.random()*H,
+    r: (Math.random()*1.8 + 0.6) * dpr,
+    vx: (Math.random()*0.30 - 0.15) * dpr,
+    vy: (Math.random()*0.30 - 0.15) * dpr,
+    a: Math.random()*0.20 + 0.06
+  }));
+
+  function loopFx(){
+    ctx.clearRect(0,0,W,H);
+
+    const grd = ctx.createRadialGradient(W*0.5, H*0.35, 0, W*0.5, H*0.5, Math.max(W,H)*0.6);
+    const night = document.documentElement.dataset.theme === "night";
+    grd.addColorStop(0, night ? "rgba(45,212,191,0.07)" : "rgba(45,212,191,0.11)");
+    grd.addColorStop(1, "rgba(255,255,255,0)");
+    ctx.fillStyle = grd;
+    ctx.fillRect(0,0,W,H);
+
+    for(const p of particles){
+      p.x += p.vx; p.y += p.vy;
+      if(p.x < -20) p.x = W+20;
+      if(p.x > W+20) p.x = -20;
+      if(p.y < -20) p.y = H+20;
+      if(p.y > H+20) p.y = -20;
+
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+      ctx.fillStyle = night ? `rgba(255,255,255,${p.a})` : `rgba(20,30,60,${p.a})`;
+      ctx.fill();
+    }
+
+    requestAnimationFrame(loopFx);
+  }
+  loopFx();
+
+  // ---------- time tick ----------
+  const timeText = $("timeText");
+  setInterval(() => timeText.textContent = nowTime(), 1000);
+  timeText.textContent = nowTime();
+
+  // ---------- Calm level (simple heuristic) ----------
+  // We keep it fun: calm% based on mood average + how many coping actions saved recently.
+  function computeCalm(){
+    const mood = loadJSON(LS.moodLogs, []);
+    const reframes = loadJSON(LS.reframes, []);
+    const cards = loadJSON(LS.copingCards, []);
+    const journal = loadJSON(LS.journal, []);
+    const baseSeed = Number(localStorage.getItem(LS.calmSeed) || "60");
+
+    const last7 = mood.slice(-7);
+    const moodAvg = last7.length ? last7.reduce((a,x)=>a + (x.level ?? 5), 0) / last7.length : 5;
+    const moodScore = (moodAvg / 10) * 100;
+
+    const activity = clamp((reframes.length + cards.length + journal.length) * 2, 0, 25);
+    const calm = clamp(Math.round((baseSeed*0.35) + (moodScore*0.45) + (activity*0.8)), 5, 98);
+
+    return calm;
+  }
+  function renderCalm(){
+    const calm = computeCalm();
+    $("calmLevel").textContent = calm;
+    const dot = $("calmDot");
+    const text = $("calmText");
+    if(calm >= 75){ dot.style.background = "var(--ok)"; text.textContent = "steady"; }
+    else if(calm >= 45){ dot.style.background = "var(--warn)"; text.textContent = "okay"; }
+    else { dot.style.background = "var(--danger)"; text.textContent = "spiky"; }
+  }
+  renderCalm();
+
+  // ---------- Boot sequence ----------
+  const boot = $("boot");
+  const app = $("app");
+  const bootBar = $("bootBar");
+  const bootLog = $("bootLog");
+  const bootStatusLeft = $("bootStatusLeft");
+  const bootStatusRight = $("bootStatusRight");
+  const enterBtn = $("enterBtn");
+  const bootSettingsBtn = $("bootSettingsBtn");
+
+  const bootSteps = [
+    "Initializing calm drivers…",
+    "Mounting memory: compassion.cache",
+    "Checking network: you are safe (offline mode)",
+    "Loading Breath.exe and Grounding tools…",
+    "Starting Thought Firewall service…",
+    "Preparing Mood Monitor charts…",
+    "Finalizing desktop environment…"
+  ];
+
+  let bootPct = 0;
+  let bootIdx = 0;
+  let bootDone = false;
+
+  function runBoot(){
+    const reduce = document.documentElement.dataset.reduceMotion === "true";
+    const speed = reduce ? 40 : 22; // a bit faster if reduce motion (less waiting)
+    const int = setInterval(() => {
+      bootPct += Math.floor(Math.random()*6) + 2;
+      bootPct = Math.min(100, bootPct);
+      bootBar.style.width = bootPct + "%";
+      bootStatusRight.textContent = bootPct + "%";
+
+      if(bootPct % 15 < 6 && bootIdx < bootSteps.length){
+        bootLog.textContent = bootSteps[bootIdx++];
+        bootStatusLeft.textContent = "Starting AnxietyOS…";
+      }
+
+      if(bootPct >= 100){
+        clearInterval(int);
+        bootDone = true;
+        bootLog.textContent = "Boot complete. Welcome.";
+        bootStatusLeft.textContent = "Ready.";
+        enterBtn.disabled = false;
+        enterBtn.classList.add("primary");
+        toast("AnxietyOS", "Boot complete — enter desktop.");
+      }
+    }, speed * 10);
+  }
+  runBoot();
+
+  function enterDesktop(){
+    if(!bootDone) return;
+    boot.classList.add("hidden");
+    app.style.visibility = "visible";
+    renderCalm();
+    scheduleOSNotifications(); // start fake notifications
+  }
+
+  enterBtn.addEventListener("click", enterDesktop);
+  addEventListener("keydown", (e) => {
+    if(e.key === "Enter" && !boot.classList.contains("hidden") && bootDone){
+      enterDesktop();
+    }
+  });
+
+  bootSettingsBtn.addEventListener("click", () => {
+    // toggle theme quickly on boot
+    const current = document.documentElement.dataset.theme;
+    const next = current === "day" ? "night" : "day";
+    localStorage.setItem(LS.theme, next);
+    applySettings();
+    toast("Settings", `Theme → ${next === "day" ? "Soft Day" : "Night Calm"}`);
+  });
+
+  // ---------- Window manager ----------
+  const desktopArea = $("desktopArea");
+  let topZ = 60;
+  const windows = new Map(); // key -> element
+  const sessionPositions = new Map(); // key -> {x,y}
+
+  function makeWindow({key, title, subtitle, contentHTML, defaultPos}){
+    // if exists, just show + focus
+    if(windows.has(key)){
+      const w = windows.get(key);
+      w.classList.remove("minimized");
+      focusWindow(w);
+      return w;
+    }
+
+    const w = document.createElement("section");
+    w.className = "window";
+    w.dataset.key = key;
+
+    const pos = sessionPositions.get(key) || defaultPos || {x: 60, y: 80};
+    w.style.left = pos.x + "px";
+    w.style.top = pos.y + "px";
+    w.style.zIndex = String(++topZ);
+
+    w.innerHTML = `
+      <div class="winHead" role="toolbar" aria-label="${escapeHtml(title)} window toolbar">
+        <div class="winTitle">
+          <b>${escapeHtml(title)}</b>
+          <span>${escapeHtml(subtitle || "")}</span>
+        </div>
+        <div class="winBtns">
+          <button class="winBtn" data-act="min" aria-label="Minimize">—</button>
+          <button class="winBtn" data-act="close" aria-label="Close">×</button>
+        </div>
+      </div>
+      <div class="winBody">${contentHTML}</div>
+    `;
+
+    // focus handling
+    w.addEventListener("mousedown", () => focusWindow(w));
+    w.addEventListener("pointerdown", () => focusWindow(w), {passive:true});
+
+    // toolbar buttons
+    w.querySelector('[data-act="min"]').addEventListener("click", (e) => {
+      e.stopPropagation();
+      w.classList.add("minimized");
+      toast("Window", `${title} minimized`);
+    });
+
+    w.querySelector('[data-act="close"]').addEventListener("click", (e) => {
+      e.stopPropagation();
+      windows.delete(key);
+      w.remove();
+      toast("Window", `${title} closed`);
+    });
+
+    // draggable
+    const head = w.querySelector(".winHead");
+    let drag = null;
+
+    head.addEventListener("pointerdown", (e) => {
+      // avoid dragging when clicking on buttons
+      const isBtn = e.target.closest(".winBtn");
+      if(isBtn) return;
+
+      focusWindow(w);
+      head.setPointerCapture(e.pointerId);
+      head.style.cursor = "grabbing";
+
+      const rect = w.getBoundingClientRect();
+      drag = {
+        startX: e.clientX,
+        startY: e.clientY,
+        origLeft: rect.left,
+        origTop: rect.top
+      };
+    });
+
+    head.addEventListener("pointermove", (e) => {
+      if(!drag) return;
+      const dx = e.clientX - drag.startX;
+      const dy = e.clientY - drag.startY;
+
+      const bounds = desktopArea.getBoundingClientRect();
+      let left = drag.origLeft + dx - bounds.left;
+      let top = drag.origTop + dy - bounds.top;
+
+      // keep within area a bit
+      left = clamp(left, 8, bounds.width - 220);
+      top = clamp(top, 8, bounds.height - 120);
+
+      w.style.left = left + "px";
+      w.style.top = top + "px";
+      sessionPositions.set(key, {x: left, y: top});
+    });
+
+    head.addEventListener("pointerup", () => {
+      drag = null;
+      head.style.cursor = "grab";
+    });
+
+    desktopArea.appendChild(w);
+    windows.set(key, w);
+    return w;
+  }
+
+  function focusWindow(w){
+    w.style.zIndex = String(++topZ);
+  }
+
+  // ---------- Apps ----------
+  function openBreath(){
+    const content = `
+      <div class="meter">
+        <div class="meterTop">
+          <span>Box breathing 4–4–4–4</span>
+          <span><b id="breathPhase">Idle</b> · <b id="breathTimer">00:00</b></span>
+        </div>
+        <div class="sep"></div>
+        <div class="row" style="align-items:center">
+          <div class="orb" id="breathOrb" aria-hidden="true"></div>
+          <div style="flex:1">
+            <div class="hint">Inhale 4 • Hold 4 • Exhale 4 • Hold 4</div>
+            <div class="sep"></div>
+            <div class="row">
+              <button class="btn primary" id="breathStart">Start</button>
+              <button class="btn" id="breathPause">Pause</button>
+              <button class="btn" id="breathReset">Reset</button>
+              <button class="btn" id="breathSave">Save Session</button>
+            </div>
+            <div class="sep"></div>
+            <div class="label">Duration</div>
+            <div class="row">
+              <select id="breathDuration" aria-label="Breath duration">
+                <option value="60">60s</option>
+                <option value="120">2m</option>
+                <option value="180">3m</option>
+              </select>
+              <span class="hint">Tip: press <span class="kbd">G</span> to open this app.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="list" id="breathHistory"></div>
+    `;
+    const w = makeWindow({
+      key:"breath",
+      title:"Breath.exe",
+      subtitle:"regulation tool",
+      contentHTML: content,
+      defaultPos:{x: 70, y: 86}
+    });
+    initBreathApp(w);
+  }
+
+  function openGrounding(){
+    const content = `
+      <div class="hint">Fill the 5-4-3-2-1 scan. Save it as a “Coping Card” for later.</div>
+      <div class="sep"></div>
+      <div class="grid2">
+        <div>
+          <div class="label">5 things I can see</div>
+          <textarea id="g5" placeholder="e.g., window, keyboard, cup…"></textarea>
+        </div>
+        <div>
+          <div class="label">4 things I can feel</div>
+          <textarea id="g4" placeholder="e.g., chair, floor, cool air…"></textarea>
+        </div>
+        <div>
+          <div class="label">3 things I can hear</div>
+          <textarea id="g3" placeholder="e.g., fan, distant traffic…"></textarea>
+        </div>
+        <div>
+          <div class="label">2 things I can smell</div>
+          <textarea id="g2" placeholder="e.g., soap, coffee…"></textarea>
+        </div>
+      </div>
+      <div class="sep"></div>
+      <div>
+        <div class="label">1 thing I can taste</div>
+        <input type="text" id="g1" placeholder="e.g., mint, water…" />
+      </div>
+      <div class="sep"></div>
+      <div class="row">
+        <button class="btn primary" id="saveCard">Save Coping Card</button>
+        <button class="btn" id="clearGround">Clear</button>
+      </div>
+
+      <div class="sep"></div>
+      <div class="meter">
+        <div class="meterTop"><span>Saved Coping Cards</span><span class="label">local</span></div>
+        <div class="list" id="cardList"></div>
+      </div>
+    `;
+    const w = makeWindow({
+      key:"grounding",
+      title:"Grounding",
+      subtitle:"5-4-3-2-1",
+      contentHTML: content,
+      defaultPos:{x: 150, y: 110}
+    });
+    initGroundingApp(w);
+  }
+
+  function openJournal(){
+    const content = `
+      <div class="hint">Write a quick entry. Mood tags help your future self notice patterns.</div>
+      <div class="sep"></div>
+      <div class="grid2">
+        <div>
+          <div class="label">Title</div>
+          <input type="text" id="jTitle" placeholder="e.g., 'Before the exam'" />
+        </div>
+        <div>
+          <div class="label">Mood</div>
+          <select id="jMood" aria-label="Mood tag">
+            <option>calm</option><option>tense</option><option>overthinking</option><option>sad</option><option>angry</option><option>hopeful</option>
+          </select>
+        </div>
+      </div>
+      <div class="sep"></div>
+      <div class="label">Entry</div>
+      <textarea id="jBody" placeholder="Write freely. You can be messy here."></textarea>
+      <div class="sep"></div>
+      <div class="row">
+        <button class="btn primary" id="jSave">Save Entry</button>
+        <button class="btn" id="jClear">Clear</button>
+      </div>
+      <div class="sep"></div>
+      <div class="meter">
+        <div class="meterTop"><span>Recent entries</span><span class="label">local</span></div>
+        <div class="list" id="journalList"></div>
+      </div>
+    `;
+    const w = makeWindow({
+      key:"journal",
+      title:"Journal.txt",
+      subtitle:"notes + mood tags",
+      contentHTML: content,
+      defaultPos:{x: 90, y: 200}
+    });
+    initJournalApp(w);
+  }
+
+  function openFirewall(){
+    const content = `
+      <div class="hint">Turn anxious thoughts into balanced thoughts using evidence. Save reframes when helpful.</div>
+      <div class="sep"></div>
+
+      <div class="label">Anxious thought</div>
+      <textarea id="fwThought" placeholder="e.g., 'Everyone thinks I'm incompetent'"></textarea>
+
+      <div class="sep"></div>
+      <div class="grid2">
+        <div>
+          <div class="label">Evidence FOR</div>
+          <textarea id="fwFor" placeholder="Facts that support it…"></textarea>
+        </div>
+        <div>
+          <div class="label">Evidence AGAINST</div>
+          <textarea id="fwAgainst" placeholder="Facts that challenge it…"></textarea>
+        </div>
+      </div>
+
+      <div class="sep"></div>
+      <div class="label">Balanced thought</div>
+      <textarea id="fwBalanced" placeholder="A fair, grounded rewrite…"></textarea>
+
+      <div class="sep"></div>
+      <div class="row">
+        <button class="btn primary" id="fwGenerate">Generate Balanced Thought</button>
+        <button class="btn" id="fwSave">Save Reframe</button>
+        <button class="btn" id="fwClear">Clear</button>
+      </div>
+
+      <div class="sep"></div>
+      <div class="meter">
+        <div class="meterTop"><span>Saved reframes</span><span class="label">local</span></div>
+        <div class="list" id="fwList"></div>
+      </div>
+    `;
+    const w = makeWindow({
+      key:"firewall",
+      title:"Thought Firewall",
+      subtitle:"reframe assistant",
+      contentHTML: content,
+      defaultPos:{x: 250, y: 120}
+    });
+    initFirewallApp(w);
+  }
+
+  function openMood(){
+    const content = `
+      <div class="hint">Track mood 0–10. Last 7 entries show as a tiny chart.</div>
+      <div class="sep"></div>
+
+      <div class="meter">
+        <div class="meterTop">
+          <span>Mood level</span>
+          <span><b id="moodVal">5</b>/10</span>
+        </div>
+        <div class="sep"></div>
+        <input type="range" min="0" max="10" value="5" id="moodRange" aria-label="Mood slider" style="width:100%" />
+        <div class="sep"></div>
+        <div class="grid2">
+          <div>
+            <div class="label">Triggers</div>
+            <input type="text" id="moodTriggers" placeholder="e.g., caffeine, deadline, conflict…" />
+          </div>
+          <div>
+            <div class="label">Notes</div>
+            <input type="text" id="moodNotes" placeholder="e.g., 'heart racing but manageable'" />
+          </div>
+        </div>
+        <div class="sep"></div>
+        <div class="row">
+          <button class="btn primary" id="moodSave">Save log</button>
+          <button class="btn" id="moodClear">Clear</button>
+        </div>
+      </div>
+
+      <div class="sep"></div>
+
+      <div class="meter">
+        <div class="meterTop"><span>Last 7 logs</span><span class="label">chart</span></div>
+        <div class="sep"></div>
+        <canvas id="moodChart" width="480" height="140" style="width:100%; height:140px; border-radius:14px; border:1px solid color-mix(in srgb, var(--line) 65%, transparent); background: color-mix(in srgb, var(--glass2) 65%, transparent)"></canvas>
+        <div class="sep"></div>
+        <div class="list" id="moodList"></div>
+      </div>
+    `;
+    const w = makeWindow({
+      key:"mood",
+      title:"Mood Monitor",
+      subtitle:"0–10 + chart",
+      contentHTML: content,
+      defaultPos:{x: 380, y: 170}
+    });
+    initMoodApp(w);
+  }
+
+  function openSettings(){
+    const theme = localStorage.getItem(LS.theme) || "day";
+    const reduce = localStorage.getItem(LS.reduceMotion) || "false";
+    const notif = localStorage.getItem(LS.notifLevel) || "medium";
+
+    const content = `
+      <div class="hint">These settings are local and only affect this browser.</div>
+      <div class="sep"></div>
+
+      <div class="meter">
+        <div class="meterTop"><span>Theme</span><span class="label">ui</span></div>
+        <div class="sep"></div>
+        <div class="row">
+          <button class="btn primary" id="setDay">Soft Day</button>
+          <button class="btn" id="setNight">Night Calm</button>
+          <span class="hint">Current: <b style="font-family:var(--mono)">${escapeHtml(theme)}</b></span>
+        </div>
+      </div>
+
+      <div class="sep"></div>
+
+      <div class="meter">
+        <div class="meterTop"><span>Reduce motion</span><span class="label">accessibility</span></div>
+        <div class="sep"></div>
+        <div class="row">
+          <button class="btn ${reduce==="true"?"primary":""}" id="reduceOn">On</button>
+          <button class="btn ${reduce==="false"?"primary":""}" id="reduceOff">Off</button>
+          <span class="hint">Helps if animation makes you uncomfortable.</span>
+        </div>
+      </div>
+
+      <div class="sep"></div>
+
+      <div class="meter">
+        <div class="meterTop"><span>Notification frequency</span><span class="label">fake os</span></div>
+        <div class="sep"></div>
+        <div class="row">
+          <select id="notifSelect" aria-label="Notification frequency">
+            <option value="low" ${notif==="low"?"selected":""}>low</option>
+            <option value="medium" ${notif==="medium"?"selected":""}>medium</option>
+            <option value="high" ${notif==="high"?"selected":""}>high</option>
+          </select>
+          <button class="btn" id="testNotif">Test toast</button>
+        </div>
+        <div class="sep"></div>
+        <div class="hint">Example: “Overthinking.service detected — try Breath.exe”</div>
+      </div>
+
+      <div class="sep"></div>
+
+      <div class="meter">
+        <div class="meterTop"><span>About</span><span class="label">disclaimer</span></div>
+        <div class="sep"></div>
+        <div class="hint">
+          AnxietyOS is educational support, not medical advice. If you’re in crisis, contact local emergency services.
+        </div>
+      </div>
+    `;
+
+    const w = makeWindow({
+      key:"settings",
+      title:"Settings",
+      subtitle:"theme • motion • toasts",
+      contentHTML: content,
+      defaultPos:{x: 210, y: 80}
+    });
+    initSettingsApp(w);
+  }
+
+  // ---------- app initializers ----------
+  function initBreathApp(w){
+    const phaseEl = w.querySelector("#breathPhase");
+    const timerEl = w.querySelector("#breathTimer");
+    const orb = w.querySelector("#breathOrb");
+    const startBtn = w.querySelector("#breathStart");
+    const pauseBtn = w.querySelector("#breathPause");
+    const resetBtn = w.querySelector("#breathReset");
+    const saveBtn = w.querySelector("#breathSave");
+    const durationSel = w.querySelector("#breathDuration");
+    const hist = w.querySelector("#breathHistory");
+
+    let interval = null;
+    let total = Number(durationSel.value);
+    let remaining = total;
+
+    const phases = [
+      {name:"Inhale", len:4, scale:1.06},
+      {name:"Hold", len:4, scale:1.06},
+      {name:"Exhale", len:4, scale:0.94},
+      {name:"Hold", len:4, scale:0.94},
+    ];
+    let pIdx = 0;
+    let pElapsed = 0;
+
+    const fmt = (s) => `${String(Math.floor(s/60)).padStart(2,"0")}:${String(s%60).padStart(2,"0")}`;
+
+    function render(){
+      timerEl.textContent = fmt(remaining);
+      phaseEl.textContent = interval ? phases[pIdx].name : "Idle";
+      const reduce = document.documentElement.dataset.reduceMotion === "true";
+      if(!reduce){
+        orb.style.transform = `scale(${interval ? phases[pIdx].scale : 1})`;
+      }else{
+        orb.style.transform = "scale(1)";
+      }
+    }
+
+    function tick(){
+      if(remaining <= 0){
+        clearInterval(interval);
+        interval = null;
+        remaining = total;
+        pIdx = 0; pElapsed = 0;
+        render();
+        toast("Breath.exe", "Session complete. Nice work.");
+        renderCalm();
+        return;
+      }
+
+      remaining -= 1;
+      pElapsed += 1;
+
+      if(pElapsed >= phases[pIdx].len){
+        pElapsed = 0;
+        pIdx = (pIdx + 1) % phases.length;
+      }
+      render();
+    }
+
+    function start(){
+      if(interval) return;
+      total = Number(durationSel.value);
+      if(remaining > total) remaining = total;
+      if(remaining === 0 || remaining === total) remaining = total;
+      interval = setInterval(tick, 1000);
+      toast("Breath.exe", "Started box breathing.");
+      render();
+    }
+
+    function pause(){
+      if(!interval) return;
+      clearInterval(interval);
+      interval = null;
+      toast("Breath.exe", "Paused.");
+      render();
+    }
+
+    function reset(){
+      clearInterval(interval);
+      interval = null;
+      total = Number(durationSel.value);
+      remaining = total;
+      pIdx = 0; pElapsed = 0;
+      toast("Breath.exe", "Reset.");
+      render();
+    }
+
+    function saveSession(){
+      // store as a coping card style entry in copingCards
+      const cards = loadJSON(LS.copingCards, []);
+      const when = new Date().toLocaleString([], {day:"2-digit", month:"short", hour:"2-digit", minute:"2-digit"});
+      cards.unshift({
+        type:"breath",
+        when,
+        title:"Breathing session",
+        body:`Box breathing (${durationSel.value}s).`
+      });
+      saveJSON(LS.copingCards, cards.slice(0, 40));
+      toast("Saved", "Breathing session saved to Coping Cards.");
+      renderCalm();
+      renderBreathHistory();
+    }
+
+    function renderBreathHistory(){
+      const cards = loadJSON(LS.copingCards, []).filter(x => x.type === "breath").slice(0, 6);
+      hist.innerHTML = "";
+      if(cards.length === 0){
+        hist.innerHTML = `<div class="item"><div class="meta"><span>no saved sessions yet</span><span>—</span></div><div class="txt">Use “Save Session” if you want it in your history.</div></div>`;
+        return;
+      }
+      cards.forEach(c => {
+        const el = document.createElement("div");
+        el.className = "item";
+        el.innerHTML = `<div class="meta"><span>BREATH • ${escapeHtml(c.when)}</span><span>coping cards</span></div><div class="txt">${escapeHtml(c.body)}</div>`;
+        hist.appendChild(el);
+      });
+    }
+
+    durationSel.addEventListener("change", () => {
+      if(interval) return; // don't change mid-run
+      total = Number(durationSel.value);
+      remaining = total;
+      pIdx=0; pElapsed=0;
+      render();
+    });
+
+    startBtn.addEventListener("click", start);
+    pauseBtn.addEventListener("click", pause);
+    resetBtn.addEventListener("click", reset);
+    saveBtn.addEventListener("click", saveSession);
+
+    renderBreathHistory();
+    render();
+  }
+
+  function initGroundingApp(w){
+    const g5 = w.querySelector("#g5");
+    const g4 = w.querySelector("#g4");
+    const g3 = w.querySelector("#g3");
+    const g2 = w.querySelector("#g2");
+    const g1 = w.querySelector("#g1");
+    const saveBtn = w.querySelector("#saveCard");
+    const clearBtn = w.querySelector("#clearGround");
+    const list = w.querySelector("#cardList");
+
+    function clearInputs(){
+      g5.value=""; g4.value=""; g3.value=""; g2.value=""; g1.value="";
+    }
+
+    function saveCard(){
+      const parts = [
+        ["5 see", g5.value.trim()],
+        ["4 feel", g4.value.trim()],
+        ["3 hear", g3.value.trim()],
+        ["2 smell", g2.value.trim()],
+        ["1 taste", g1.value.trim()]
+      ];
+      if(parts.every(([,v]) => !v)){
+        toast("Grounding", "Add at least one line before saving.");
+        return;
+      }
+      const when = new Date().toLocaleString([], {day:"2-digit", month:"short", hour:"2-digit", minute:"2-digit"});
+      const cards = loadJSON(LS.copingCards, []);
+      const body = parts.filter(([,v]) => v).map(([k,v]) => `${k}: ${v}`).join("\n");
+      cards.unshift({type:"grounding", when, title:"5-4-3-2-1", body});
+      saveJSON(LS.copingCards, cards.slice(0, 50));
+      toast("Saved", "Coping card saved.");
+      renderCalm();
+      renderCards();
+    }
+
+    function renderCards(){
+      const cards = loadJSON(LS.copingCards, []).filter(x => x.type === "grounding").slice(0, 10);
+      list.innerHTML = "";
+      if(cards.length === 0){
+        list.innerHTML = `<div class="item"><div class="meta"><span>no coping cards yet</span><span>—</span></div><div class="txt">Save a grounding scan and it will appear here.</div></div>`;
+        return;
+      }
+      cards.forEach((c, idx) => {
+        const el = document.createElement("div");
+        el.className = "item";
+        el.innerHTML = `
+          <div class="meta"><span>GROUNDING • ${escapeHtml(c.when)}</span>
+            <span><button class="btn" data-del="${idx}" style="pointer-events:auto">Delete</button></span>
+          </div>
+          <div class="txt">${escapeHtml(c.body)}</div>
+        `;
+        el.querySelector("[data-del]").addEventListener("click", () => {
+          // delete by matching object identity in filtered list
+          const all = loadJSON(LS.copingCards, []);
+          const target = cards[idx];
+          const next = all.filter(x => x !== target);
+          saveJSON(LS.copingCards, next);
+          toast("Coping Cards", "Deleted.");
+          renderCards();
+          renderCalm();
+        });
+        list.appendChild(el);
+      });
+    }
+
+    saveBtn.addEventListener("click", saveCard);
+    clearBtn.addEventListener("click", clearInputs);
+
+    renderCards();
+  }
+
+  function initJournalApp(w){
+    const title = w.querySelector("#jTitle");
+    const mood = w.querySelector("#jMood");
+    const body = w.querySelector("#jBody");
+    const save = w.querySelector("#jSave");
+    const clear = w.querySelector("#jClear");
+    const list = w.querySelector("#journalList");
+
+    function saveEntry(){
+      const t = title.value.trim();
+      const b = body.value.trim();
+      if(!t && !b){
+        toast("Journal.txt", "Write something before saving.");
+        return;
+      }
+      const when = new Date().toLocaleString([], {day:"2-digit", month:"short", hour:"2-digit", minute:"2-digit"});
+      const entries = loadJSON(LS.journal, []);
+      entries.unshift({when, title: t || "Untitled", mood: mood.value, body: b});
+      saveJSON(LS.journal, entries.slice(0, 60));
+      title.value=""; body.value="";
+      toast("Journal.txt", "Saved entry.");
+      renderEntries();
+      renderCalm();
+    }
+
+    function renderEntries(){
+      const entries = loadJSON(LS.journal, []).slice(0, 10);
+      list.innerHTML = "";
+      if(entries.length === 0){
+        list.innerHTML = `<div class="item"><div class="meta"><span>no entries yet</span><span>—</span></div><div class="txt">Your recent notes will show here.</div></div>`;
+        return;
+      }
+      entries.forEach(e => {
+        const el = document.createElement("div");
+        el.className = "item";
+        el.innerHTML = `
+          <div class="meta"><span>${escapeHtml(e.title)} • ${escapeHtml(e.when)}</span><span>${escapeHtml(e.mood)}</span></div>
+          <div class="txt">${escapeHtml(e.body || "")}</div>
+        `;
+        list.appendChild(el);
+      });
+    }
+
+    save.addEventListener("click", saveEntry);
+    clear.addEventListener("click", () => { title.value=""; body.value=""; toast("Journal.txt", "Cleared."); });
+
+    renderEntries();
+  }
+
+  function initFirewallApp(w){
+    const thought = w.querySelector("#fwThought");
+    const evFor = w.querySelector("#fwFor");
+    const evAgainst = w.querySelector("#fwAgainst");
+    const balanced = w.querySelector("#fwBalanced");
+    const gen = w.querySelector("#fwGenerate");
+    const save = w.querySelector("#fwSave");
+    const clear = w.querySelector("#fwClear");
+    const list = w.querySelector("#fwList");
+
+    function generate(){
+      const t = thought.value.trim();
+      if(!t){
+        toast("Thought Firewall", "Add a thought first.");
+        return;
+      }
+      const against = evAgainst.value.trim();
+      const fors = evFor.value.trim();
+
+      // simple heuristic rewrite (no AI): emphasize uncertainty + next step
+      const line1 = "I’m noticing an anxious thought, not a fact.";
+      const line2 = against ? "There is evidence against it." : "I may not have full evidence for this thought.";
+      const line3 = fors ? "Some parts feel true, but feelings aren’t proof." : "It’s okay that this feels intense.";
+      const line4 = "A fair next step: do one small action, then reassess.";
+
+      balanced.value = `${line1} ${line2} ${line3} ${line4}`.trim();
+      toast("Thought Firewall", "Balanced thought drafted.");
+    }
+
+    function saveReframe(){
+      const t = thought.value.trim();
+      const b = balanced.value.trim();
+      if(!t && !b){
+        toast("Thought Firewall", "Nothing to save yet.");
+        return;
+      }
+      const when = new Date().toLocaleString([], {day:"2-digit", month:"short", hour:"2-digit", minute:"2-digit"});
+      const reframes = loadJSON(LS.reframes, []);
+      reframes.unshift({
+        when,
+        thought: t || "—",
+        for: evFor.value.trim(),
+        against: evAgainst.value.trim(),
+        balanced: b || "—"
+      });
+      saveJSON(LS.reframes, reframes.slice(0, 60));
+      toast("Saved", "Reframe saved.");
+      renderList();
+      renderCalm();
+    }
+
+    function renderList(){
+      const reframes = loadJSON(LS.reframes, []).slice(0, 10);
+      list.innerHTML = "";
+      if(reframes.length === 0){
+        list.innerHTML = `<div class="item"><div class="meta"><span>no reframes yet</span><span>—</span></div><div class="txt">Saved balanced thoughts appear here.</div></div>`;
+        return;
+      }
+      reframes.forEach(r => {
+        const el = document.createElement("div");
+        el.className = "item";
+        el.innerHTML = `
+          <div class="meta"><span>REFRAME • ${escapeHtml(r.when)}</span><span>local</span></div>
+          <div class="txt"><b>Thought:</b> ${escapeHtml(r.thought)}\n<b>Balanced:</b> ${escapeHtml(r.balanced)}</div>
+        `;
+        list.appendChild(el);
+      });
+    }
+
+    gen.addEventListener("click", generate);
+    save.addEventListener("click", saveReframe);
+    clear.addEventListener("click", () => {
+      thought.value=""; evFor.value=""; evAgainst.value=""; balanced.value="";
+      toast("Thought Firewall", "Cleared.");
+    });
+
+    renderList();
+  }
+
+  function initMoodApp(w){
+    const range = w.querySelector("#moodRange");
+    const val = w.querySelector("#moodVal");
+    const trig = w.querySelector("#moodTriggers");
+    const notes = w.querySelector("#moodNotes");
+    const save = w.querySelector("#moodSave");
+    const clear = w.querySelector("#moodClear");
+    const list = w.querySelector("#moodList");
+    const chart = w.querySelector("#moodChart");
+    const cctx = chart.getContext("2d");
+
+    function renderValue(){
+      val.textContent = range.value;
+    }
+
+    function saveLog(){
+      const when = new Date().toLocaleString([], {day:"2-digit", month:"short", hour:"2-digit", minute:"2-digit"});
+      const logs = loadJSON(LS.moodLogs, []);
+      logs.push({
+        when,
+        level: Number(range.value),
+        triggers: trig.value.trim(),
+        notes: notes.value.trim()
+      });
+      saveJSON(LS.moodLogs, logs.slice(-120));
+      toast("Mood Monitor", "Saved mood log.");
+      trig.value=""; notes.value="";
+      renderAll();
+      renderCalm();
+    }
+
+    function renderList(){
+      const logs = loadJSON(LS.moodLogs, []).slice(-10).reverse();
+      list.innerHTML = "";
+      if(logs.length === 0){
+        list.innerHTML = `<div class="item"><div class="meta"><span>no mood logs yet</span><span>—</span></div><div class="txt">Save a log to see it here.</div></div>`;
+        return;
+      }
+      logs.forEach(l => {
+        const el = document.createElement("div");
+        el.className = "item";
+        el.innerHTML = `
+          <div class="meta"><span>${escapeHtml(l.when)}</span><span>${l.level}/10</span></div>
+          <div class="txt">${escapeHtml([l.triggers && ("Triggers: "+l.triggers), l.notes && ("Notes: "+l.notes)].filter(Boolean).join("\n") || "")}</div>
+        `;
+        list.appendChild(el);
+      });
+    }
+
+    function renderChart(){
+      const logs = loadJSON(LS.moodLogs, []).slice(-7);
+      const w = chart.width, h = chart.height;
+
+      cctx.clearRect(0,0,w,h);
+
+      const night = document.documentElement.dataset.theme === "night";
+      const bg = night ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.55)";
+      cctx.fillStyle = bg;
+      cctx.fillRect(0,0,w,h);
+
+      // grid lines
+      cctx.strokeStyle = night ? "rgba(255,255,255,0.10)" : "rgba(20,30,60,0.10)";
+      cctx.lineWidth = 1;
+      for(let i=0;i<=5;i++){
+        const y = (h-20) - (i/5)*(h-30);
+        cctx.beginPath();
+        cctx.moveTo(12, y);
+        cctx.lineTo(w-12, y);
+        cctx.stroke();
+      }
+
+      // no data
+      if(logs.length === 0){
+        cctx.fillStyle = night ? "rgba(255,255,255,0.6)" : "rgba(20,30,60,0.55)";
+        cctx.font = `12px ${getComputedStyle(document.documentElement).getPropertyValue('--mono')}`;
+        cctx.fillText("No logs yet (last 7 will show here).", 16, h/2);
+        return;
+      }
+
+      const padX = 16, padY = 18;
+      const innerW = w - padX*2;
+      const innerH = h - padY*2;
+
+      const xs = logs.map((_,i) => padX + (i/(Math.max(1, logs.length-1))) * innerW);
+      const ys = logs.map(l => padY + (1 - (l.level/10)) * innerH);
+
+      // line
+      const grad = cctx.createLinearGradient(0,0,w,0);
+      grad.addColorStop(0, night ? "rgba(45,212,191,0.85)" : "rgba(45,212,191,0.95)");
+      grad.addColorStop(1, night ? "rgba(139,92,246,0.75)" : "rgba(139,92,246,0.85)");
+      cctx.strokeStyle = grad;
+      cctx.lineWidth = 3;
+      cctx.beginPath();
+      cctx.moveTo(xs[0], ys[0]);
+      for(let i=1;i<xs.length;i++) cctx.lineTo(xs[i], ys[i]);
+      cctx.stroke();
+
+      // points
+      cctx.fillStyle = night ? "rgba(255,255,255,0.9)" : "rgba(16,22,36,0.85)";
+      for(let i=0;i<xs.length;i++){
+        cctx.beginPath();
+        cctx.arc(xs[i], ys[i], 4, 0, Math.PI*2);
+        cctx.fill();
+      }
+
+      // labels
+      cctx.fillStyle = night ? "rgba(255,255,255,0.65)" : "rgba(20,30,60,0.55)";
+      cctx.font = "12px ui-monospace";
+      cctx.fillText("last 7", 16, 14);
+    }
+
+    function renderAll(){
+      renderValue();
+      renderList();
+      renderChart();
+    }
+
+    range.addEventListener("input", renderValue);
+    save.addEventListener("click", saveLog);
+    clear.addEventListener("click", () => { trig.value=""; notes.value=""; toast("Mood Monitor", "Cleared."); });
+
+    renderAll();
+  }
+
+  function initSettingsApp(w){
+    const setDay = w.querySelector("#setDay");
+    const setNight = w.querySelector("#setNight");
+    const reduceOn = w.querySelector("#reduceOn");
+    const reduceOff = w.querySelector("#reduceOff");
+    const notifSelect = w.querySelector("#notifSelect");
+    const testNotif = w.querySelector("#testNotif");
+
+    setDay.addEventListener("click", () => {
+      localStorage.setItem(LS.theme, "day");
+      applySettings();
+      toast("Settings", "Theme → Soft Day");
+      renderCalm();
+    });
+    setNight.addEventListener("click", () => {
+      localStorage.setItem(LS.theme, "night");
+      applySettings();
+      toast("Settings", "Theme → Night Calm");
+      renderCalm();
+    });
+
+    reduceOn.addEventListener("click", () => {
+      localStorage.setItem(LS.reduceMotion, "true");
+      applySettings();
+      toast("Settings", "Reduce motion → On");
+    });
+    reduceOff.addEventListener("click", () => {
+      localStorage.setItem(LS.reduceMotion, "false");
+      applySettings();
+      toast("Settings", "Reduce motion → Off");
+    });
+
+    notifSelect.addEventListener("change", () => {
+      localStorage.setItem(LS.notifLevel, notifSelect.value);
+      toast("Settings", `Notification frequency → ${notifSelect.value}`);
+      scheduleOSNotifications(true);
+    });
+
+    testNotif.addEventListener("click", () => {
+      toast("AnxietyOS", "Overthinking.service detected — try Breath.exe");
+    });
+  }
+
+  // ---------- opening apps ----------
+  function openApp(key){
+    if(key === "breath") openBreath();
+    if(key === "grounding") openGrounding();
+    if(key === "journal") openJournal();
+    if(key === "firewall") openFirewall();
+    if(key === "mood") openMood();
+    if(key === "settings") openSettings();
+  }
+
+  // dock
+  document.querySelectorAll("[data-open]").forEach(btn => {
+    btn.addEventListener("click", () => openApp(btn.dataset.open));
+  });
+
+  $("settingsBtn").addEventListener("click", () => openApp("settings"));
+
+  // keyboard shortcuts
+  addEventListener("keydown", (e) => {
+    if(!boot.classList.contains("hidden")) return;
+
+    const k = e.key.toLowerCase();
+    if(k === "g") openApp("breath");
+    if(k === "j") openApp("journal");
+    if(k === "s") openApp("settings");
+    if(k === "p") openPanicOverlay();
+  });
+
+  // ---------- OS notifications (fake) ----------
+  let notifTimer = null;
+  function scheduleOSNotifications(reset=false){
+    if(reset && notifTimer) { clearInterval(notifTimer); notifTimer = null; }
+
+    const level = localStorage.getItem(LS.notifLevel) || "medium";
+    const ms = level === "low" ? 45000 : level === "high" ? 18000 : 30000;
+
+    if(notifTimer) return;
+
+    const msgs = [
+      ["AnxietyOS", "Overthinking.service detected — try Breath.exe"],
+      ["Firewall", "Rumination.loop spotted — write a balanced thought"],
+      ["Mood Monitor", "Quick check: rate your mood 0–10"],
+      ["Coping Cards", "You can save one grounding scan for later"],
+      ["System", "Soft reminder: tiny steps count"]
+    ];
+
+    notifTimer = setInterval(() => {
+      // don't spam if user hasn't entered
+      if(boot.classList.contains("hidden")){
+        const pick = msgs[Math.floor(Math.random()*msgs.length)];
+        toast(pick[0], pick[1]);
+      }
+    }, ms);
+  }
+
+  // ---------- Panic overlay + ambient sound ----------
+  const overlay = $("panicOverlay");
+  const closeOverlayBtn = $("closeOverlayBtn");
+  const panicBtn = $("panicBtn");
+  const soundBtn = $("soundBtn");
+  const panicStartBtn = $("panicStartBtn");
+  const panicResetBtn = $("panicResetBtn");
+  const panicTimerEl = $("panicTimer");
+  const panicPhaseEl = $("panicPhase");
+  const panicOrb = $("panicOrb");
+
+  let panicInterval = null;
+  let panicRemaining = 30;
+
+  const panicPhases = [
+    {name:"Inhale", len:4, scale:1.06},
+    {name:"Hold", len:2, scale:1.06},
+    {name:"Exhale", len:6, scale:0.94},
+  ];
+  let panicP = 0, panicE = 0;
+
+  function openPanicOverlay(){
+    overlay.classList.add("show");
+    toast("Emergency", "Overlay opened — breathe + ground.");
+  }
+  function closePanicOverlay(){
+    overlay.classList.remove("show");
+  }
+  panicBtn.addEventListener("click", openPanicOverlay);
+  closeOverlayBtn.addEventListener("click", closePanicOverlay);
+
+  addEventListener("keydown", (e) => {
+    if(e.key === "Escape" && overlay.classList.contains("show")) closePanicOverlay();
+  });
+
+  function renderPanic(){
+    panicTimerEl.textContent = String(panicRemaining);
+    panicPhaseEl.textContent = panicInterval ? panicPhases[panicP].name : "Idle";
+    const reduce = document.documentElement.dataset.reduceMotion === "true";
+    if(!reduce){
+      panicOrb.classList.toggle("bigPulse", panicInterval && panicPhases[panicP].scale > 1);
+      panicOrb.style.transform = `scale(${panicInterval ? panicPhases[panicP].scale : 1})`;
+    }else{
+      panicOrb.style.transform = "scale(1)";
+    }
+  }
+
+  function stopPanicTimer(){
+    if(panicInterval) clearInterval(panicInterval);
+    panicInterval = null;
+    renderPanic();
+  }
+
+  function startPanicTimer(){
+    if(panicInterval) return;
+    panicInterval = setInterval(() => {
+      if(panicRemaining <= 0){
+        stopPanicTimer();
+        toast("Emergency", "30s done. You did it.");
+        renderCalm();
+        return;
+      }
+      panicRemaining -= 1;
+
+      panicE += 1;
+      if(panicE >= panicPhases[panicP].len){
+        panicE = 0;
+        panicP = (panicP + 1) % panicPhases.length;
+      }
+      renderPanic();
+    }, 1000);
+    toast("Emergency", "Breathing started.");
+    renderPanic();
+  }
+
+  function resetPanicTimer(){
+    stopPanicTimer();
+    panicRemaining = 30;
+    panicP = 0; panicE = 0;
+    renderPanic();
+    toast("Emergency", "Reset.");
+  }
+
+  panicStartBtn.addEventListener("click", startPanicTimer);
+  panicResetBtn.addEventListener("click", resetPanicTimer);
+  renderPanic();
+
+  // ambient sound (WebAudio: pink-ish noise + gentle lowpass)
+  let audioCtx = null;
+  let noiseNode = null;
+  let filterNode = null;
+  let gainNode = null;
+  let soundOn = false;
+
+  function startAmbient(){
+    if(soundOn) return;
+    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+
+    // noise buffer
+    const bufferSize = 2 * audioCtx.sampleRate;
+    const noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+    const output = noiseBuffer.getChannelData(0);
+    for(let i=0;i<bufferSize;i++){
+      // simple noise, softened
+      output[i] = (Math.random()*2 - 1) * 0.35;
+    }
+
+    noiseNode = audioCtx.createBufferSource();
+    noiseNode.buffer = noiseBuffer;
+    noiseNode.loop = true;
+
+    filterNode = audioCtx.createBiquadFilter();
+    filterNode.type = "lowpass";
+    filterNode.frequency.value = 900;
+
+    gainNode = audioCtx.createGain();
+    gainNode.gain.value = 0.0;
+
+    noiseNode.connect(filterNode);
+    filterNode.connect(gainNode);
+    gainNode.connect(audioCtx.destination);
+
+    noiseNode.start(0);
+
+    // fade in
+    const now = audioCtx.currentTime;
+    gainNode.gain.cancelScheduledValues(now);
+    gainNode.gain.setValueAtTime(0.0, now);
+    gainNode.gain.linearRampToValueAtTime(0.06, now + 0.7);
+
+    soundOn = true;
+    soundBtn.textContent = "Ambient: On";
+    toast("Sound", "Ambient on.");
+  }
+
+  function stopAmbient(){
+    if(!soundOn) return;
+    if(audioCtx && gainNode){
+      const now = audioCtx.currentTime;
+      gainNode.gain.cancelScheduledValues(now);
+      gainNode.gain.setValueAtTime(gainNode.gain.value, now);
+      gainNode.gain.linearRampToValueAtTime(0.0, now + 0.4);
+    }
+    setTimeout(() => {
+      try{ noiseNode && noiseNode.stop(); }catch{}
+      noiseNode = null;
+      filterNode = null;
+      gainNode = null;
+    }, 450);
+
+    soundOn = false;
+    soundBtn.textContent = "Ambient: Off";
+    toast("Sound", "Ambient off.");
+  }
+
+  soundBtn.addEventListener("click", async () => {
+    // user gesture needed on some browsers
+    try{
+      if(!soundOn){
+        await (audioCtx?.resume?.() ?? Promise.resolve());
+        startAmbient();
+      }else{
+        stopAmbient();
+      }
+    }catch{
+      toast("Sound", "Your browser blocked audio. Try clicking again.");
+    }
+  });
+
+  // ---------- boot into a nicer default ----------
+  // Auto-open one window after entering, for “impressive” feel
+  function firstRunOpen(){
+    const key = "anxietyos_first_run_v1";
+    if(localStorage.getItem(key)) return;
+    localStorage.setItem(key, "1");
+    // seed calm baseline
+    if(!localStorage.getItem(LS.calmSeed)) localStorage.setItem(LS.calmSeed, String(60 + Math.floor(Math.random()*12)));
+    // open breath + settings tip
+    openBreath();
+    toast("Welcome", "Tip: Panic button opens Emergency Mode.");
+  }
+
+  // enter desktop hooks
+  const origEnter = enterDesktop;
+  function enterDesktopWrapped(){
+    origEnter();
+    setTimeout(() => {
+      firstRunOpen();
+      renderCalm();
+    }, 220);
+  }
+  // swap handler
+  enterBtn.removeEventListener("click", enterDesktop);
+  enterBtn.addEventListener("click", enterDesktopWrapped);
+  addEventListener("keydown", (e) => {
+    if(e.key === "Enter" && !boot.classList.contains("hidden") && bootDone){
+      enterDesktopWrapped();
+    }
+  });
+
+})();
+</script>
+</body>
+</html>
